@@ -202,14 +202,15 @@ class Save:
 				self.bz2xsi_xsi.frames += [self.object_to_bz2frame(obj, is_root_level=True)]
 		
 		# Envelopes for bones
-		for bz2frame, obj in self.enveloped_bz2frames.items():
-			vertex_weights = get_vertex_weights(obj.evaluated_get(self.depsgraph), self.bone_name_to_bz2frame)
-			
-			for bone_name, bz2bone in self.bone_name_to_bz2frame.items():
-				if bone_name in vertex_weights:
-					bz2frame.envelopes.append(bz2xsi.Envelope(bz2bone, vertex_weights[bone_name]))
-				else:
-					print("XSI Warning: Vertex group not found for bone:", bone_name)
+		if opt["export_envelopes"]:
+			for bz2frame, obj in self.enveloped_bz2frames.items():
+				vertex_weights = get_vertex_weights(obj.evaluated_get(self.depsgraph), self.bone_name_to_bz2frame)
+				
+				for bone_name, bz2bone in self.bone_name_to_bz2frame.items():
+					if bone_name in vertex_weights:
+						bz2frame.envelopes.append(bz2xsi.Envelope(bz2bone, vertex_weights[bone_name]))
+					else:
+						print("XSI Warning: Vertex group not found for bone:", bone_name)
 		
 		# Set keyframe position back, if changed during reading animation keyframes
 		if bpy.context.scene.frame_current != original_keyframe_position:
@@ -250,11 +251,16 @@ class Save:
 	def object_to_bz2frame(self, obj, is_root_level=False):
 		bz2frame = bz2xsi.Frame(obj.name)
 		bz2frame.mesh = None
+		is_skinned = self.opt["export_envelopes"] and get_armature(obj) in self.referenced_objects
 
 		if is_root_level and self.opt["zero_root_transforms"]:
 			bz2frame.transform = bz2xsi.Matrix()
 		else:
 			bz2frame.transform = self.matrix_to_bz2matrix(obj.matrix_local)
+		
+		if is_skinned:
+			# Stock XSIs seem to have a pose base transform for enveloped meshes as well as for the bones themselves.
+			bz2frame.pose = bz2frame.transform
 		
 		obj_eval = obj.evaluated_get(self.depsgraph)
 		data = obj_eval.data
@@ -266,11 +272,12 @@ class Save:
 		if obj.type == "MESH" and not len(data.vertices) <= 0:
 			if not ALLOW_MESH_WITH_NO_FACES and len(data.polygons) <= 0:
 				print("XSI Warning: Mesh for object %r has no faces, ignoring mesh data." % obj.name)
+			
 			else:
 				if self.opt["export_mesh"]:
 					bz2frame.mesh = self.mesh_to_bz2mesh(data, bz2frame.name if USE_FRAME_NAME_AS_MESH_NAME else None)
 					
-					if get_armature(obj) in self.referenced_objects:
+					if is_skinned:
 						self.enveloped_bz2frames[bz2frame] = obj_eval
 		
 		elif obj.type == "ARMATURE":
