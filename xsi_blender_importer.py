@@ -446,11 +446,11 @@ class Load:
 		bpy_material.blend_method = "BLEND"
 		
 		bpy_node_bsdf = bpy_material.node_tree.nodes["Principled BSDF"]
-		bpy_node_bsdf.inputs[0].default_value = tuple(xsi_material.diffuse[0:3]) + (1.0,) # Base Color (diffuse)
-		bpy_node_bsdf.inputs[5].default_value = 0.0 if emissive else 0.50 # Specularity
-		bpy_node_bsdf.inputs[19].default_value = xsi_material.diffuse[3] # Alpha (0.0 to 1.0)
-		bpy_node_bsdf.inputs[18].default_value = emissive_strength
-		bpy_node_bsdf.inputs[17].default_value = xsi_material.diffuse if emissive else (0.0, 0.0, 0.0, 0.0) # Emissive
+		bpy_node_bsdf.inputs["Base Color"].default_value = tuple(xsi_material.diffuse[0:3]) + (1.0,)
+		bpy_node_bsdf.inputs["Specular"].default_value = 0.0 if emissive else 0.50 # Specularity
+		bpy_node_bsdf.inputs["Alpha"].default_value = xsi_material.diffuse[3] # Alpha (0.0 to 1.0)
+		bpy_node_bsdf.inputs["Emission Strength"].default_value = emissive_strength
+		bpy_node_bsdf.inputs["Emission"].default_value = xsi_material.diffuse if emissive else (0.0, 0.0, 0.0, 0.0) # Emissive
 		
 		if use_vcol:
 			bpy_node_attribute = bpy_material.node_tree.nodes.new("ShaderNodeAttribute")
@@ -479,14 +479,14 @@ class Load:
 			
 			# Multiplies with either diffuse color, or with vertex color (which overrides diffuse)
 			bpy_node_mixrgb = bpy_material.node_tree.nodes.new("ShaderNodeMixRGB")
-			bpy_node_mixrgb.inputs[0].default_value = 1.0 # Factor
-			bpy_node_mixrgb.inputs[1].default_value = bpy_node_bsdf.inputs[0].default_value # Default Mix
+			bpy_node_mixrgb.inputs["Fac"].default_value = 1.0 # Factor
+			bpy_node_mixrgb.inputs["Color1"].default_value = bpy_node_bsdf.inputs[0].default_value # Default Mix
 			bpy_node_mixrgb.blend_type = "MULTIPLY"
 			bpy_node_mixrgb.location = (-COL, 0)
 			
 			# Alpha mixed (lowest value used) with vertex color alpha or diffuse alpha
 			bpy_node_alphamath = bpy_material.node_tree.nodes.new("ShaderNodeMath")
-			bpy_node_alphamath.inputs[0].default_value = bpy_node_bsdf.inputs[19].default_value
+			bpy_node_alphamath.inputs[0].default_value = bpy_node_bsdf.inputs["Alpha"].default_value
 			bpy_node_alphamath.operation = "MINIMUM" # Use whichever is more transparent - texture alpha vs vertex or diffuse alpha
 			bpy_node_alphamath.location = (-COL, -COL)
 			
