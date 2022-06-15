@@ -1,5 +1,5 @@
 """This module provides BZ2 XSI utilities, including a parser and writer for XSI files."""
-VERSION = 1.1
+VERSION = 1.11
 
 # No print calls will be made by the module if this is False
 ALLOW_PRINT = True
@@ -170,6 +170,16 @@ class Frame(_FrameContainer):
 			"".join(map(str, self.animation_keys)),
 			"".join(map(str, self.envelopes)),
 		)
+	
+	def get_animation_frame_range(self):
+		start = end = None
+		for animkey in self.animation_keys:
+			for keyframe, vector in animkey.keys:
+				if start == None or keyframe < start:
+					start = keyframe
+				if end == None or keyframe > end:
+					end = keyframe
+		return start, end
 	
 	def get_chained_name(self, delimiter=" -> "):
 		frm, chain = self, []
