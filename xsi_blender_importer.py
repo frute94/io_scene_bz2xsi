@@ -3,7 +3,7 @@ from mathutils import Matrix, Vector, Euler, Quaternion
 from bpy_extras import image_utils
 
 from . import bz2xsi
-from math import radians
+from math import radians, floor, ceil
 import os
 
 DEBUGGING_BONES = False
@@ -139,16 +139,10 @@ class Load:
 				bpy_anim.action = bpy.data.actions.new(name="anim-" + xsi_frame.name)
 				self.import_animations(xsi_frame, bpy_obj, bpy_anim, as_bone=False)
 			
-			min_frame = max_frame = 0
-			
-			for action in bpy.data.actions:
-				minimum, maximum = tuple(action.frame_range)
-				min_frame = min(minimum, min_frame)
-				max_frame = max(maximum, max_frame)
-			
-			self.context.scene.frame_start = min_frame
-			self.context.scene.frame_end = max_frame
-			self.context.scene.frame_current = min_frame
+			start_frame, end_frame = xsi_frame.get_animation_frame_range()
+			self.context.scene.frame_start = start_frame
+			self.context.scene.frame_end = end_frame
+			self.context.scene.frame_current = start_frame
 		
 		# Armature will be the only root object, if present
 		if self.bpy_armature:
