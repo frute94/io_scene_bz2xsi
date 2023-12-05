@@ -1,0 +1,7 @@
+[2:58 PM 12/5/2023]
+Adjusted some renamed shader nodes for blender 4.0 update.
+Importer now uses specular tint introduced in the blender 4.0 principled shader node.
+
+[8:20 PM 9/5/2023]
+bz2xsi.py - get_all_frames in _FrameContainer now returns a generator instead of a list.
+xsi_blender_exporter.py - Child objects with animations now export. Looks like this issue was caused by a safety check on root objects having anims.

@@ -439,12 +439,16 @@ class Load:
 		bpy_material.show_transparent_back = double_sided
 		bpy_material.blend_method = "BLEND"
 		
+		alpha = float(xsi_material.diffuse[3]) if len(xsi_material.diffuse) >= 4 else 1.0
+		specular_rgb = tuple(float(x) for x in xsi_material.specular[0:3]) if len(xsi_material.specular) >= 3 else (0.5, 0.5, 0.5)
+		
 		bpy_node_bsdf = bpy_material.node_tree.nodes["Principled BSDF"]
 		bpy_node_bsdf.inputs["Base Color"].default_value = tuple(xsi_material.diffuse[0:3]) + (1.0,)
-		bpy_node_bsdf.inputs["Specular"].default_value = 0.0 if emissive else 0.50 # Specularity
-		bpy_node_bsdf.inputs["Alpha"].default_value = xsi_material.diffuse[3] # Alpha (0.0 to 1.0)
+		bpy_node_bsdf.inputs["Specular IOR Level"].default_value = 0.5 # Specular Intensity
+		bpy_node_bsdf.inputs["Specular Tint"].default_value = tuple((*specular_rgb, 1.0))
+		bpy_node_bsdf.inputs["Alpha"].default_value = alpha
 		bpy_node_bsdf.inputs["Emission Strength"].default_value = emissive_strength
-		bpy_node_bsdf.inputs["Emission"].default_value = xsi_material.diffuse if emissive else (0.0, 0.0, 0.0, 0.0) # Emissive
+		bpy_node_bsdf.inputs["Emission Color"].default_value = xsi_material.diffuse if emissive else (0.0, 0.0, 0.0, 0.0) # Emissive
 		
 		if use_vcol:
 			bpy_node_attribute = bpy_material.node_tree.nodes.new("ShaderNodeAttribute")
@@ -531,7 +535,7 @@ class Load:
 			if emissive:
 				bpy_material.node_tree.links.new(
 					bpy_node_mixrgb.outputs["Color"],
-					bpy_node_bsdf.inputs["Emission"]
+					bpy_node_bsdf.inputs["Emission Color"]
 				)
 		
 		# No texture
@@ -552,7 +556,7 @@ class Load:
 				if emissive:
 					bpy_material.node_tree.links.new(
 						bpy_node_attribute.outputs["Color"],
-						bpy_node_bsdf.inputs["Emission"]
+						bpy_node_bsdf.inputs["Emission Color"]
 					)
 		
 		if self.opt["add_material_overrides"]: # Blender Material Custom Properties
