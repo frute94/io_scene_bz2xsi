@@ -3,6 +3,9 @@ from mathutils import Matrix, Vector
 
 from . import bz2xsi
 
+# Normals changed in 4.1 from 4.0
+OLD_NORMALS = not (bpy.app.version[0] >= 4 and bpy.app.version[1] >= 1)
+
 USE_FRAME_NAME_AS_MESH_NAME = True
 ALLOW_MESH_WITH_NO_FACES = False
 ALLOW_MESH_WITH_NO_MATERIAL = False
@@ -259,7 +262,6 @@ class Save:
 			bz2frame.transform = self.matrix_to_bz2matrix(obj.matrix_local)
 		
 		if is_skinned:
-			# Stock XSIs seem to have a pose base transform for enveloped meshes as well as for the bones themselves.
 			bz2frame.pose = bz2frame.transform
 		
 		obj_eval = obj.evaluated_get(self.depsgraph)
@@ -285,7 +287,7 @@ class Save:
 				if not bone.parent:
 					bz2frame.frames += [self.bone_to_bz2frame(bone, posebone, obj_eval)]
 		
-		# All other supported types are treated as empty objects by default below.
+		# All other supported blender types are treated as empty objects by default below.
 		elif self.opt["generate_empty_mesh"]:
 			bz2frame.mesh = generate_pointer_mesh()
 			bz2frame.mesh.name = bz2frame.name
@@ -293,10 +295,14 @@ class Save:
 		if self.opt["export_animations"] and obj_eval.animation_data and obj_eval.animation_data.action:
 			bz2_animations = list(self.animation_to_bz2anim(obj_eval))
 			
-			if bz2_animations and is_root_level:
-				if ALLOW_ROOT_LEVEL_ANIMS:
+			if is_root_level and not ALLOW_ROOT_LEVEL_ANIMS:
+				bz2_animations = []
+			
+			if bz2_animations:
+				if is_root_level:
 					print("XSI Warning: Root-level object %r animation data may not behave as expected in BZ2." % obj.name)
-					bz2frame.animation_keys += list(self.animation_to_bz2anim(obj_eval))
+				
+				bz2frame.animation_keys += list(self.animation_to_bz2anim(obj_eval))
 		
 		for obj in obj.children:
 			if obj.type in ALLOWED_SUB_OBJECTS:
@@ -317,8 +323,9 @@ class Save:
 			bz2anim = bz2xsi.AnimationKey(bz2_keyframe_type)
 			
 			for point in points:
-				bpy.context.scene.frame_set(point.co[0])
+				#~ bpy.context.scene.frame_set(point.co[0])
 				pos = int(point.co[0])
+				bpy.context.scene.frame_set(pos)
 				
 				if bz2_keyframe_type == 2:
 					bz2anim.add_key(pos, tuple(Matrix(obj.matrix_local).to_translation()))
@@ -371,8 +378,9 @@ class Save:
 			bz2anim = bz2xsi.AnimationKey(bz2_keyframe_type)
 			
 			for point in points:
-				bpy.context.scene.frame_set(point.co[0])
+				#~ bpy.context.scene.frame_set(point.co[0])
 				pos = int(point.co[0])
+				bpy.context.scene.frame_set(pos)
 				
 				if posebone.parent:
 					matrix = Matrix(posebone.parent.matrix).inverted()
@@ -390,7 +398,8 @@ class Save:
 	
 	def mesh_to_bz2mesh(self, data, name=None):
 		bz2mesh = bz2xsi.Mesh(name if name else data.name)
-		data.calc_normals_split()
+		if OLD_NORMALS:
+			data.calc_normals_split()
 		bz2materials = []
 		
 		if self.opt["export_mesh_materials"]:

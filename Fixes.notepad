@@ -1,3 +1,6 @@
+[12:33 PM 4/25/2024]
+Now works with the Blender 4.1 update to normals.
+
 [2:58 PM 12/5/2023]
 Adjusted some renamed shader nodes for blender 4.0 update.
 Importer now uses specular tint introduced in the blender 4.0 principled shader node.

@@ -8,6 +8,9 @@ import os
 
 DEBUGGING_BONES = False
 
+# Normals changed in 4.1 from 4.0
+OLD_NORMALS = not (bpy.app.version[0] >= 4 and bpy.app.version[1] >= 1)
+
 class InvalidXSI(Exception): pass
 class UnsupportedAnim(InvalidXSI): pass
 
@@ -379,7 +382,8 @@ class Load:
 			else:
 				bpy_mesh.normals_split_custom_set_from_vertices(xsi_mesh.normal_vertices)
 			
-			bpy_mesh.use_auto_smooth = True
+			if OLD_NORMALS:
+				bpy_mesh.use_auto_smooth = True
 		
 		if self.opt["import_mesh_materials"]:
 			xsi_face_indices, xsi_materials = xsi_mesh.get_material_indices()

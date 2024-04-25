@@ -1,5 +1,5 @@
 """This module provides BZ2 XSI utilities, including a parser and writer for XSI files."""
-VERSION = 1.11
+VERSION = 1.13
 
 # No print calls will be made by the module if this is False
 ALLOW_PRINT = True
@@ -41,9 +41,8 @@ class _FrameContainer:
 	def get_all_frames(self):
 		frames = []
 		for frame in self.frames:
-			frames += [frame] + frame.get_all_frames()
-		
-		return frames
+			yield frame
+			yield from frame.get_all_frames()
 	
 	def find_frame(self, name):
 		for frame in self.get_all_frames():
@@ -739,7 +738,18 @@ class Reader:
 				self.skip_block()
 			
 			elif Reader.RE_MESH_MATERIAL.match(block_type):
-				materials.append(self.read_material())
+				try:
+					materials.append(self.read_material())
+				except XSIParseError as e:
+					print("Invalid material (index %d) in mesh %r, using default." % (len(materials), mesh.name))
+					materials.append(Material(
+						diffuse      = list(DEFAULT_DIFFUSE),
+						hardness     = DEFAULT_HARDNESS,
+						specular     = list(DEFAULT_SPECULAR),
+						emissive     = list(DEFAULT_EMISSIVE),
+						shading_type = DEFAULT_SHADING_TYPE,
+						ambient      = list(DEFAULT_AMBIENT)
+					))
 			
 			else:
 				if ALLOW_PRINT:
@@ -977,6 +987,7 @@ class Writer:
 			self.write_frame(0, root_frame)
 		
 		animated_frames = tuple(self.xsi.get_animated_frames())
+		
 		if animated_frames:
 			self.write(0, "\nAnimationSet {")
 			
